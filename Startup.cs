@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using AutoMapper;
 using DatingApp.API.Data;
 using DatingApp.API.Helpers;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
@@ -37,12 +38,15 @@ namespace DatingApp.API
             // inject datacontext and use lamda expression 
             // to define what database where gonna use
             services.AddDbContext<DataContext>(x => x.UseSqlite(Configuration.GetConnectionString("DefaultConnection")));
-            services.AddMvc();
+            // automatically seed data at start up
+            services.AddTransient<Seed>();
             services.AddCors();
-
+            
+            services.AddAutoMapper();
             // inject our auth repository
             services.AddScoped<IAuthRepository, AuthRepository>();
-            
+            services.AddScoped<IDatingRepository, DatingRepository>();
+
             // inject our authentication scheme
             services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
                 .AddJwtBearer(options => {
@@ -54,10 +58,15 @@ namespace DatingApp.API
                         ValidateAudience = false
                     };
                 });
+
+            services.AddMvc().AddJsonOptions(opt =>
+            {
+                opt.SerializerSettings.ReferenceLoopHandling = Newtonsoft.Json.ReferenceLoopHandling.Ignore;
+            });
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
-        public void Configure(IApplicationBuilder app, IHostingEnvironment env)
+        public void Configure(IApplicationBuilder app, IHostingEnvironment env, Seed seeder)
         {
             if (env.IsDevelopment())
             {
@@ -82,7 +91,8 @@ namespace DatingApp.API
                     });
                 });                
             }
-
+            // populate users data
+            // seeder.SeedUser();
             app.UseCors(x => x.AllowAnyHeader().AllowAnyMethod().AllowAnyOrigin().AllowCredentials());
             app.UseAuthentication();
             app.UseMvc();
