@@ -11,7 +11,7 @@ using System;
 namespace DatingApp.API.Migrations
 {
     [DbContext(typeof(DataContext))]
-    [Migration("20180415074429_ExtendedUserClass")]
+    [Migration("20180512132433_ExtendedUserClass")]
     partial class ExtendedUserClass
     {
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -31,6 +31,8 @@ namespace DatingApp.API.Migrations
 
                     b.Property<bool>("IsMain");
 
+                    b.Property<string>("PublicId");
+
                     b.Property<string>("Url");
 
                     b.Property<int>("UserID");
@@ -39,7 +41,7 @@ namespace DatingApp.API.Migrations
 
                     b.HasIndex("UserID");
 
-                    b.ToTable("Photo");
+                    b.ToTable("Photos");
                 });
 
             modelBuilder.Entity("DatingApp.API.Models.User", b =>
