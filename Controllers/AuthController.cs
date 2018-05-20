@@ -45,21 +45,23 @@ namespace DatingApp.API.Controllers
             // the error in model state
             if (!ModelState.IsValid)
                 return BadRequest(ModelState);
+            
+            // map the user for register to actual user            
+            var userToCreate = _mapper.Map<User>(userForRegisterDto);
 
-            var userToCreate = new User
-            {
-                Username = userForRegisterDto.Username
-            };
+            var createdUser = await _repo.Register(userToCreate, userForRegisterDto.Password);
 
-            var createUser = await _repo.Register(userToCreate, userForRegisterDto.Password);
+            // map again the created user to userToReturned
+            // so that it will not return all data of the user
+            var userToReturned = _mapper.Map<UserForDetailedDto>(createdUser);
 
-            return StatusCode(201);
+            return CreatedAtRoute("GetUser", new {controller = "Users", id = createdUser.Id}, userToReturned);
         }
 
         [HttpPost("login")]
         public async Task<IActionResult> Login([FromBody]UserForLoginDto userForLoginDto)
         {
-            var userFromRepo = await _repo.Login(userForLoginDto.Username, userForLoginDto.Password);
+            var userFromRepo = await _repo.Login(userForLoginDto.Username.ToLower(), userForLoginDto.Password);
 
             if (userFromRepo == null)
                 return Unauthorized();
