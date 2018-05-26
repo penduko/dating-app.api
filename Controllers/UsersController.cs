@@ -5,11 +5,13 @@ using System.Threading.Tasks;
 using AutoMapper;
 using DatingApp.API.Data;
 using DatingApp.API.Dtos;
+using DatingApp.API.Helpers;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace DatingApp.API.Controllers
 {
+    [ServiceFilter(typeof(LogUserActivity))]
     [Authorize]
     [Route("api/[controller]")]
     public class UsersController : Controller
@@ -23,11 +25,24 @@ namespace DatingApp.API.Controllers
         }
 
         [HttpGet]
-        public async Task<IActionResult> GetUsers()
+        public async Task<IActionResult> GetUsers([FromQuery] UserParams userParams)
         {
-            var users = await _repo.GetUsers();
-            var usersToReturn = _mapper.Map<IEnumerable<UserForListDto>>(users);
+            // get the id of the user that sent request to the api
+            var currentUserId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier).Value);
+            // get the current user from repo
+            var userFromRepo = await _repo.GetUser(currentUserId);
+        
+            // set our parameter filter
+            userParams.UserId = currentUserId;
+            if (string.IsNullOrEmpty(userParams.Gender)) 
+                userParams.Gender = userFromRepo.Gender == "male" ? "female" : "male";
 
+            var users = await _repo.GetUsers(userParams);
+            var usersToReturn = _mapper.Map<IEnumerable<UserForListDto>>(users);
+            
+            // add pagination headers
+            Response.AddPagination(users.CurrentPage, users.PageSize, users.TotalCount, users.TotalPages);
+            
             return Ok(usersToReturn);
         }
 
