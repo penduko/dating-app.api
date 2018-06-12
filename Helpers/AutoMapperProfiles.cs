@@ -38,6 +38,17 @@ namespace DatingApp.API.Helpers
             CreateMap<Photo, PhotoForReturnDto>();
 
             CreateMap<UserForRegisterDto, User>();
+
+            // user reverse map to go back the other way
+            CreateMap<MessageForCreationDto, Message>().ReverseMap();
+
+            CreateMap<Message, MessageToReturnDto>()
+                // gives automapper specific instruction on how it 
+                // should populate particular member of class
+                .ForMember(m => m.SenderPhotoUrl, 
+                    opt => opt.MapFrom(u => u.Sender.Photos.FirstOrDefault(p => p.IsMain).Url))
+                .ForMember(m => m.RecipientPhotoUrl,
+                    opt => opt.MapFrom(u => u.Recipient.Photos.FirstOrDefault(p => p.IsMain).Url));
         }
     }
 }

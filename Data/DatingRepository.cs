@@ -31,15 +31,15 @@ namespace DatingApp.API.Data
                 FirstOrDefaultAsync(u => u.LikerId == userId && u.LikeeId == recipientId);
         }
 
-        public Task<Photo> GetMainPhotoForUser(int userId)
+        public async Task<Photo> GetMainPhotoForUser(int userId)
         {
-            return _context.Photos.Where(u => u.UserID == userId)
+            return await _context.Photos.Where(u => u.UserID == userId)
                 .FirstOrDefaultAsync(p => p.IsMain);
         }
 
-        public Task<Photo> GetPhoto(int id)
+        public async Task<Photo> GetPhoto(int id)
         {
-            var photo = _context.Photos.FirstOrDefaultAsync(p => p.Id == id);
+            var photo = await _context.Photos.FirstOrDefaultAsync(p => p.Id == id);
 
             return photo;
         }
@@ -119,6 +119,53 @@ namespace DatingApp.API.Data
         public async Task<bool> SaveAll()
         {
             return await _context.SaveChangesAsync() > 0;
+        }
+
+        public async Task<Message> GetMessage(int id)
+        {
+            return await _context.Messages.FirstOrDefaultAsync(m => m.Id == id);
+        }
+
+        public async Task<PagedList<Message>> GetMessageForUser(MessageParams messageParams)
+        {
+            // get messages
+            var message = _context.Messages
+                .Include(u => u.Sender).ThenInclude(p => p.Photos)
+                .Include(u => u.Recipient).ThenInclude(p => p.Photos)
+                .AsQueryable();
+
+            // switch between inbox, outbox and unread
+            switch (messageParams.MessageContainer)
+            {
+                case "Inbox":
+                    message = message.Where(u => u.RecipientId == messageParams.UserId && u.IsRead == true && u.RecipientDeleted == false);
+                    break;
+                case "Outbox":
+                    message = message.Where(u => u.SenderId == messageParams.UserId && u.SenderDeleted == false);
+                    break;
+                default:
+                    message = message.Where(u => u.RecipientId == messageParams.UserId && u.IsRead == false && u.RecipientDeleted == false);
+                    break;
+            }
+
+            // filter newest messages first
+            message = message.OrderByDescending(u => u.DateMessageSent);
+
+            // return paged list of message
+            return await PagedList<Message>.CreateAsync(message, messageParams.PageNumber, messageParams.PageSize);
+        }
+
+        public async Task<IEnumerable<Message>> GetMessageThread(int userId, int recipientId)
+        {
+            var messages = await _context.Messages
+                .Include(u => u.Sender).ThenInclude(u => u.Photos)
+                .Include(u => u.Recipient).ThenInclude(u => u.Photos)
+                .Where(m => (m.SenderId == userId && m.RecipientId == recipientId && m.SenderDeleted == false) || 
+                    (m.SenderId == recipientId && m.RecipientId == userId && m.RecipientDeleted == false))
+                .OrderByDescending(m => m.DateMessageSent)
+                .ToListAsync();
+
+            return messages;
         }
     }
 }

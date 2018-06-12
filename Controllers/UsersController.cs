@@ -12,6 +12,8 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace DatingApp.API.Controllers
 {
+    // log user activity when users comes in 
+    // in this controller
     [ServiceFilter(typeof(LogUserActivity))]
     [Authorize]
     [Route("api/[controller]")]
@@ -33,7 +35,7 @@ namespace DatingApp.API.Controllers
             // get the current user from repo
             var userFromRepo = await _repo.GetUser(currentUserId);
         
-            // set our parameter filter
+            // set our parameter filter for user id
             userParams.UserId = currentUserId;
             if (string.IsNullOrEmpty(userParams.Gender)) 
                 userParams.Gender = userFromRepo.Gender == "male" ? "female" : "male";
