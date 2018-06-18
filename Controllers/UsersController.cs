@@ -118,7 +118,8 @@ namespace DatingApp.API.Controllers
             _repo.Add<Like>(like);
 
             if (await _repo.SaveAll())
-                return Ok();
+                // return empty object as ok response
+                return Ok(new {});
 
             return BadRequest("Failed to like the user");
         }
